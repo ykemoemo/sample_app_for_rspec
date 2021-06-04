@@ -23,6 +23,8 @@ RSpec.describe 'Users', type: :system do
             fill_in 'Password', with: 'password'
             fill_in 'Password confirmation', with: 'password'
             click_button 'SignUp'
+            expect(page).to have_content '1 error prohibited this user from being saved'
+            expect(page).to have_content "Email can't be blank"
             expect(current_path).to eq users_path
           end
         end
@@ -34,7 +36,10 @@ RSpec.describe 'Users', type: :system do
             fill_in 'Password', with: 'password'
             fill_in 'Password confirmation', with: 'password'
             click_button 'SignUp'
+            expect(page).to have_content '1 error prohibited this user from being saved'
+            expect(page).to have_content 'Email has already been taken'
             expect(current_path).to eq users_path
+            expect(page).to have_field 'Email', with: exist_user.email
           end
         end
       end
@@ -72,18 +77,22 @@ RSpec.describe 'Users', type: :system do
             fill_in 'Password', with: 'update_password'
             fill_in 'Password confirmation', with: 'update_password'
             click_button 'Update'
+            expect(page).to have_content('1 error prohibited this user from being saved')
+            expect(page).to have_content("Email can't be blank")
             expect(current_path).to eq user_path(user)
           end
         end
         context '登録済のメールアドレスを使用' do
           it 'ユーザーの編集が失敗する' do
             exist_user = create(:user)
-
             visit edit_user_path(user)
+
             fill_in 'Email', with: exist_user.email
             fill_in 'Password', with: 'update_password'
             fill_in 'Password confirmation', with: 'update_password'
             click_button 'Update'
+            expect(page).to have_content('1 error prohibited this user from being saved')
+            expect(page).to have_content('Email has already been taken')
             expect(current_path).to eq user_path(user)
           end
         end
@@ -91,6 +100,7 @@ RSpec.describe 'Users', type: :system do
           it '編集ページへのアクセスが失敗する' do
             exist_user = create(:user)
             visit edit_user_path(exist_user)
+            expect(page).to have_content 'Forbidden access.'
             expect(current_path).to eq user_path(user)
           end
         end
@@ -99,10 +109,14 @@ RSpec.describe 'Users', type: :system do
       describe 'マイページ' do
         context 'タスクを作成' do
           it '新規作成したタスクが表示される' do
-            create(:task, title: 'title', status: 1, user: user)
+            create(:task, title: 'title', status: :doing, user: user)
             visit user_path(user)
+            expect(page).to have_content('You have 1 task.')
             expect(page).to have_content('title')
-            expect(page).to have_content('1')
+            expect(page).to have_content('doing')
+            expect(page).to have_link('Show')
+            expect(page).to have_link('Edit')
+            expect(page).to have_link('Destroy')
           end
         end
       end
